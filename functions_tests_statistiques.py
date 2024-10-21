@@ -32,9 +32,9 @@ def test_homoscedasticite(X, y):
     # graph des résidus vs probabilités prédites
     plt.scatter(y_pred_prob, residus_pearson, alpha=0.5)
     plt.axhline(0, color='red', linestyle='--')
-    plt.xlabel('probabilités prédites')
-    plt.ylabel('résidus de Pearson')
-    plt.title('résidus de pearson vs probabilités prédites')
+    plt.xlabel('Probabilités prédites')
+    plt.ylabel('Résidus de Pearson')
+    plt.title('Résidus de pearson vs Probabilités prédites')
     plt.show()
 
 
@@ -53,6 +53,14 @@ def test_independance_erreurs(X, y):
     
     # stats de durbin watson
     dw_stat = durbin_watson(residuals)
+    
+    # analyse du résultat
+    if dw_stat < 1.5:
+        print(f'autocorrélation positive détectée (DW = {dw_stat:.2f}).')
+    elif dw_stat > 2.5:
+        print(f'autocorrélation négative détectée (DW = {dw_stat:.2f}).')
+    else:
+        print(f'pas d\'autocorrélation significative détectée (DW = {dw_stat:.2f}).')
     
     return dw_stat
 

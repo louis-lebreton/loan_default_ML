@@ -8,7 +8,12 @@ Fonctions pour le prétraitement des données
 """
 from itertools import combinations_with_replacement
 
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
+from sklearn.ensemble import RandomForestRegressor
 
 # Traitement des valeurs manquantes
 
@@ -21,6 +26,38 @@ def afficher_pourcentage_valeurs_manquantes(df):
 def afficher_nb_valeurs_manquantes(df):
     lignes_avec_n_manquantes = df.isna().sum(axis=1) # nb de valeurs manquantes par ligne
     return lignes_avec_n_manquantes
+
+def afficher_valeurs_manquantes_barplot(df):
+   
+    missing_values = (df.isnull().sum() / len(df)) * 100
+    missing_values = missing_values.sort_values(ascending=False)
+    # barplot
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x=missing_values.index, y=missing_values, palette='viridis')
+    plt.xlabel('Variable')
+    plt.ylabel('Pourcentage de valeurs manquantes (%)')
+    plt.title('Pourcentage de valeurs manquantes par variable')
+    plt.show()
+
+
+def random_forest_imputation(df, colonne_a_imputer):
+    df_complet = df[df[colonne_a_imputer].notna()]
+    df_manquant = df[df[colonne_a_imputer].isna()]
+    
+    features = df_complet.select_dtypes(include=[np.number]).drop(columns=[colonne_a_imputer, 'BAD']).columns.tolist()
+
+    X = df_complet[features]
+    y = df_complet[colonne_a_imputer]
+    
+    model = RandomForestRegressor(random_state=999)
+    model.fit(X, y)
+    
+    df_manquant[colonne_a_imputer] = model.predict(df_manquant[features])
+    
+    # concatenation du df complet avec le df manquant imputé
+    df_impute = pd.concat([df_complet, df_manquant]).sort_index()
+    
+    return df_impute
 
 # Normalisation
 

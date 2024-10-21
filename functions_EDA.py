@@ -114,22 +114,23 @@ def afficher_num_vars_bivarie_graph(df, y, palette):
         plt.title(f"Boxplots de {var} x {y}")
         plt.show()
 
-def v_cramer(var1, var2):
+def v_cramer_test_khi2(var1, var2):
     """Calcule le V de Cramer entre 2 variables catégorielles"""
-    confusion_matrix = pd.crosstab(var1, var2)
-    chi2 = chi2_contingency(confusion_matrix)[0]
-    n = confusion_matrix.sum().sum()
-    r, k = confusion_matrix.shape
-    return np.sqrt(chi2 / (n * (min(r, k) - 1)))
+    matrice_confusion = pd.crosstab(var1, var2)
+    # test Chi-2
+    chi2_stat, p_val, _ , _ = chi2_contingency(matrice_confusion)
+    n = matrice_confusion.sum().sum()
+    r, k = matrice_confusion.shape
+    return round(np.sqrt(chi2_stat / (n*(min(r,k)-1))),3), round(p_val,3)
 
 def correlation_ratio(var_cat, var_num):
     """Calcule le eta entre une var cat et une var num"""
     fcat, _ = pd.factorize(var_cat)
     cat_means = np.array([var_num[fcat == i].mean() for i in range(len(np.unique(fcat)))])
     overall_mean = var_num.mean()
-    numerator = np.sum([len(var_num[fcat == i]) * (cat_mean - overall_mean) ** 2 for i, cat_mean in enumerate(cat_means)])
-    denominator = np.sum((var_num - overall_mean) ** 2)
-    return np.sqrt(numerator / denominator)
+    numerateur = np.sum([len(var_num[fcat == i]) * (cat_mean - overall_mean) ** 2 for i, cat_mean in enumerate(cat_means)])
+    denominateur = np.sum((var_num - overall_mean) ** 2)
+    return np.sqrt(numerateur / denominateur)
 
 # Multivarie
 
@@ -137,7 +138,7 @@ def afficher_df_head(df):
     for var in df.columns:
         print(f"{var}:\n{df[var].head()}\n")
 
-def afficher_matrice_correlation(df, methode='pearson'):
+def afficher_matrice_correlation_num(df, methode='pearson'):
     # methode: pearson, kendall ou spearman
     df_num = df.select_dtypes(include=['float64', 'int64'])
     matrice_correlation = df_num.corr(method = methode)
