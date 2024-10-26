@@ -18,6 +18,7 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import classification_report, accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 from xgboost import XGBClassifier
+from sklearn.metrics import roc_curve, auc
 
 # Choix des variables
 
@@ -89,10 +90,10 @@ def regression_logistique_simple_summary(df, vars_selectionne, var_y ='BAD'):
     result = logit_model.fit()
 
     params = result.params  # coeffs
-    summary = result.conf_int()  # IC
-    summary['Odds Ratio'] = params.apply(lambda x: np.exp(x))  # odds ratios
+    summary = round(result.conf_int(),2)  # IC
+    summary['Odds Ratio'] = params.apply(lambda x: round(np.exp(x),2))  # odds ratios
     summary.columns = ['2.5%', '97.5%', 'Odds Ratio']
-    summary['p-value'] = result.pvalues # p-values
+    summary['p-value'] = round(result.pvalues,3) # p-values
 
     return summary
 
@@ -166,7 +167,7 @@ def regression_logistique_kfold_gridsearch(df, var_x, var_y, k_folds = 5):
     conf_matrix = confusion_matrix(y_test, y_pred)
     plt.figure(figsize=(10, 5))
     sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=['Classe 0', 'Classe 1'], yticklabels=['Classe 0', 'Classe 1'])
-    plt.title('Matrice de confusion')
+    plt.title('Matrice de confusion pour le modèle de régression logistique')
     plt.xlabel('valeurs prédites')
     plt.ylabel('valeurs réelles')
     plt.show()
@@ -187,7 +188,7 @@ def tester_modeles(df_norm, selected_variables, target_variable):
         'Decision Tree': DecisionTreeClassifier(),
         'Random Forest': RandomForestClassifier(),
         'Gradient Boosting': GradientBoostingClassifier(),
-        'XGBoost': XGBClassifier(use_label_encoder=False, eval_metric='logloss')
+        'XGBoost': XGBClassifier(eval_metric='logloss')
         
     }
     
@@ -259,7 +260,7 @@ def random_forest_kfold_gridsearch(df, var_x, var_y, k_folds=5):
     conf_matrix = confusion_matrix(y_test, y_pred)
     plt.figure(figsize=(10, 5))
     sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues', xticklabels=['Classe 0', 'Classe 1'], yticklabels=['Classe 0', 'Classe 1'])
-    plt.title('Matrice de confusion')
+    plt.title('Matrice de confusion pour le Random Forest')
     plt.xlabel('valeurs prédites')
     plt.ylabel('valeurs réelles')
     plt.show()
@@ -294,3 +295,21 @@ def K_means(X, k):
     centroids = kmeans.cluster_centers_
     
     return kmeans, labels, centroids
+
+def plot_courbe_roc(y, y_pred_proba, title:str, color:str):
+    """
+    fonction pour tracer la courbe ROC
+    """
+    fpr, tpr, _ = roc_curve(y, y_pred_proba)
+    roc_auc = auc(fpr, tpr)
+    
+    # traçage
+    plt.figure()
+    plt.plot(fpr, tpr, color=color, lw=2, label=f'Courbe ROC (AUC = {roc_auc:.3f})')
+    plt.plot([0, 1], [0, 1], color='grey', linestyle='--', lw=2)
+    plt.xlabel('taux de faux positifs')
+    plt.ylabel('taux de vrais positifs')
+    plt.title(title)
+    plt.legend(loc='lower right')
+    plt.grid(True)
+    plt.show()

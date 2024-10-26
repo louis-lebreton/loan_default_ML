@@ -47,7 +47,7 @@ df.columns
 
 # Observations de valeurs extrêmes 
 df[df['CLAGE']>650]
-len(df[df['DEBTINC']>50])
+len(df[df['DEBTINC']>55])
 len(df[df['DEBTINC']>100])
 
 # Bivarie
@@ -61,6 +61,10 @@ f_eda.afficher_cat_vars_bivarie_tableau(df, 'BAD')
 len(df[df['DEROG'] == 0]) / len(df)
 len(df[df['DELINQ'] == 0]) / len(df)
 df_bad_0 = df[df['BAD'] == 0]
+
+len(df[df['YOJ']==0.0]) / len(df)
+len(df_bad_0[df_bad_0['YOJ']==0.0]) / len(df_bad_0)
+
 len(df_bad_0[df_bad_0['DEROG'] == 0]) / len(df_bad_0)
 len(df_bad_0[df_bad_0['DELINQ'] == 0]) / len(df_bad_0)
 
@@ -78,6 +82,7 @@ for var in vars_num:
 
 f_eda.afficher_matrice_correlation_num(df, methode='spearman')
 f_eda.afficher_matrice_correlation_num(df, methode='kendall')
+f_eda.afficher_matrice_correlation_num(df)
 
 # Derog et Delag corrélés à la variable y
 # Value et Mortdue fortement et postiviement corrélés
@@ -92,7 +97,7 @@ plt.show()
 # Traitement des valeurs aberrantes par plafonnement
 
 df.loc[df['CLAGE'] > 660, 'CLAGE'] = 660 # 55 ans
-df.loc[df['DEBTINC'] > 55, 'DEBTINC'] = 55
+# df.loc[df['DEBTINC'] > 55, 'DEBTINC'] = 55
 
 
 # Traitement des valeurs manquantes
@@ -104,7 +109,7 @@ tab_nb_va_manquantes = f_pre.afficher_nb_valeurs_manquantes(df)
 # lignes avec au moins nb_vm valeurs manquante
 for nb_vm in range(len(df.columns)):
     pourcent_vm = len(tab_nb_va_manquantes[tab_nb_va_manquantes > nb_vm]) / len(df)
-    print('Plus de ',nb_vm, 'valeurs manquantes pour ' ,round(pourcent_vm,2)," % des lignes")
+    print('Plus de ',nb_vm, 'valeurs manquantes pour ' ,round(100 * pourcent_vm,2)," % des lignes")
 
 # Observons ces lignes avec de nombreuses valeurs manquantes
 index_a_enlever = tab_nb_va_manquantes[tab_nb_va_manquantes > 4].index
@@ -149,7 +154,7 @@ df_DEBTINC_na = df[df['DEBTINC'].isna()]
 len(df_DEBTINC_na[df_DEBTINC_na['BAD'] == 1]) / len(df_DEBTINC_na)
 len(df[df['BAD'] == 1]) / len(df)
 
-# imputation par Random Forest sur les vars numériques pour DEBTINC
+# test d'imputation sur DEBTINC
 df_impute = f_pre.random_forest_imputation(df, 'DEBTINC')
 print('imputation random forest : ')
 print('df précédent -> correlation_ratio entre DEBTINC et BAD: ', f_eda.correlation_ratio(df['BAD'], df['DEBTINC']))
@@ -196,6 +201,7 @@ f_pre.afficher_pourcentage_valeurs_manquantes(df_impute) # verification
 df_impute['LOAN_VALUE_RATIO'] = df_impute['LOAN'] / df_impute['VALUE']
 df_impute['MORTDUE_VALUE_RATIO'] = df_impute['MORTDUE'] / df_impute['VALUE']
 df_impute['CREDIT_PER_MONTH'] = df_impute['CLNO'] / df_impute['CLAGE']
+
 # gestion des ['CLAGE'] == 0
 mask_inf = np.isinf(df_impute['CREDIT_PER_MONTH'])
 df_impute.loc[mask_inf, 'CREDIT_PER_MONTH'] = df_impute['CLNO']
@@ -235,26 +241,42 @@ f_ts.test_homoscedasticite(df_clean[vars_selectionne], df_clean['BAD'])
 dw_stat = f_ts.test_independance_erreurs(df_clean[vars_selectionne], df_clean['BAD'])
 vif_df= f_ts.test_independance_variables(df_clean[vars_selectionne])
 vif_df
+
 vars_selectionne.remove('DEBTINC**2')
+# vars_selectionne.append('DEBTINC**2')
 vif_df= f_ts.test_independance_variables(df_clean[vars_selectionne])
 vif_df
 
 # Summary d'une reg log
+
 summary_reg_log = f_m.regression_logistique_simple_summary(df_clean, vars_selectionne, var_y ='BAD')
 print(summary_reg_log)
 
 # Analyse points influents
-summary_p_influents = f_m.detecte_points_influents(df_clean, vars_selectionne, var_y ='BAD', seuil_cook_d = 0.001)
+
+summary_p_influents = f_m.detecte_points_influents(df_clean, vars_selectionne, var_y ='BAD', seuil_cook_d = 0.01)
 print(summary_p_influents)
 
 # Fine-tuning d'une reg log
 best_model, best_params = f_m.regression_logistique_kfold_gridsearch(df_clean, vars_selectionne, 'BAD')
+
+X = df_clean[vars_selectionne]
+y = df_clean['BAD']
+y_pred_proba = best_model.predict_proba(X)[:, 1]
+y_pred_proba = y_pred_proba.reshape(-1, 1)
+
+
+f_m.plot_courbe_roc(y, y_pred_proba, color='blue', title= 'Courbe ROC et AUC pour le modèle de régression logistique')
 
 # Choix du meilleur modèle
 resultats_test_modeles = f_m.tester_modeles(df_clean,  vars_selectionne, target_variable = 'BAD')
 
 # Fine-tuning d'une random forest
 best_model, best_params = f_m.random_forest_kfold_gridsearch(df_clean, vars_selectionne, 'BAD')
+
+y_pred_proba = best_model.predict_proba(X)[:, 1]
+
+f_m.plot_courbe_roc(y, y_pred_proba, color='red', title= 'Courbe ROC et AUC pour le modèle de Random Forest')
 
 # Clustering #######################################################################################
 
@@ -273,10 +295,10 @@ cluster_mapping = {0: 'AAA', 1: 'CCC', 2: 'BBB'}
 df_clean['Classe_de_risque'] = df_clean['Classe_de_risque'].map(cluster_mapping)
 
 # BAD X Classe de risque
-vars_a_traiter = vars_selectionne + ['BAD'] 
+vars_a_traiter = vars_selectionne + ['BAD']
 
 for var in vars_a_traiter:
     print(var)
-    df_clean.groupby('Classe_de_risque')[var].describe()
+    df_clean.groupby('Classe_de_risque')[var].mean()
     print()
 

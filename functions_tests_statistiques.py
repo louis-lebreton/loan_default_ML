@@ -32,9 +32,9 @@ def test_homoscedasticite(X, y):
     # graph des résidus vs probabilités prédites
     plt.scatter(y_pred_prob, residus_pearson, alpha=0.5)
     plt.axhline(0, color='red', linestyle='--')
-    plt.xlabel('Probabilités prédites')
-    plt.ylabel('Résidus de Pearson')
-    plt.title('Résidus de pearson vs Probabilités prédites')
+    plt.xlabel('probabilités prédites')
+    plt.ylabel('résidus de Pearson')
+    plt.title('résidus de Pearson x probabilités prédites')
     plt.show()
 
 
@@ -73,6 +73,6 @@ def test_independance_variables(X):
     # calcul du VIF
     vif_data = pd.DataFrame()
     vif_data["variable"] = X.columns
-    vif_data["VIF"] = [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
+    vif_data["VIF"] = [round(variance_inflation_factor(X.values, i),2) for i in range(X.shape[1])]
     
     return vif_data
