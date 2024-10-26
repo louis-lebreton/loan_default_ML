@@ -6,4 +6,4 @@ The data set HMEQ reports characteristics and delinquency information for 5,960 
 - EDA
 - Data preprocessing
 - Modelisation (ML)
-- Clustering
+- Segmentation
